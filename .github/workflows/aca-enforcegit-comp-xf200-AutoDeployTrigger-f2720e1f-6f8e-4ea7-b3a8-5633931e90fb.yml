@@ -1,0 +1,49 @@
+name: Trigger auto deployment for aca-enforcegit-comp-xf200
+
+# When this action will be executed
+on:
+  # Automatically trigger it when detected changes in repo
+  push:
+    branches: 
+      [ master ]
+    paths:
+    - '**'
+    - '.github/workflows/aca-enforcegit-comp-xf200-AutoDeployTrigger-f2720e1f-6f8e-4ea7-b3a8-5633931e90fb.yml'
+
+  # Allow manual trigger 
+  workflow_dispatch:      
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions: 
+      id-token: write #This is required for requesting the OIDC JWT Token
+      contents: read #Required when GH token is used to authenticate with private repo
+
+    steps:
+      - name: Checkout to the branch
+        uses: actions/checkout@v2
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.ACAENFORCEGITCOMPXF200_AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.ACAENFORCEGITCOMPXF200_AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.ACAENFORCEGITCOMPXF200_AZURE_SUBSCRIPTION_ID }}
+
+      - name: Build and push container image to registry
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          appSourcePath: ${{ github.workspace }}
+          _dockerfilePathKey_: _dockerfilePath_
+          _targetLabelKey_: _targetLabel_
+          registryUrl: kp167mlreg.azurecr.io
+          registryUsername: ${{ secrets.ACAENFORCEGITCOMPXF200_REGISTRY_USERNAME }}
+          registryPassword: ${{ secrets.ACAENFORCEGITCOMPXF200_REGISTRY_PASSWORD }}
+          containerAppName: aca-enforcegit-comp-xf200
+          resourceGroup: rg_aca_enforce_github_xf200
+          imageToBuild: kp167mlreg.azurecr.io/aca-enforcegit-comp-xf200:${{ github.sha }}
+          _buildArgumentsKey_: |
+            _buildArgumentsValues_
+
+
